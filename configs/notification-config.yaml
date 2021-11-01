@@ -1,0 +1,17 @@
+mqttBroker:
+  host: localhost
+  port: 7777
+  username: "username"
+  password: "pass"
+  clientId: "clientId1"
+  tls:
+bot:
+  token: "exampleToken"
+  id: "1234"
+  type: "telegram"
+mongo:
+  database: "test"
+  host: "localhost"
+  username: root
+  password: root
+  port: 27017

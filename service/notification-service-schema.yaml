@@ -1,0 +1,30 @@
+asyncapi: 2.0.0
+info:
+  title: Notification Service
+  version: 0.1.0
+  description: "Notification service processes incoming commands and replies to the chat(s)."
+servers:
+  development:
+    url: node1.emxq.stockup.site:1883
+    protocol: mqtt
+    description: Demo EMXQ broker
+channels:
+  chat/+/notify:
+    publish:
+      message:
+        $ref: '#/components/messages/replyPayload'
+components:
+  messages:
+    replyPayload:
+      payload:
+        type: object
+        properties:
+          chatId:
+            type: string
+            description: Chat Id
+          replyType:
+            type: int
+            description: Type of the content.
+          content:
+            type: object
+            description: The content of the reply

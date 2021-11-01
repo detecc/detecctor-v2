@@ -1,0 +1,74 @@
+version: "3.7"
+services:
+  plugin-service:
+    build:
+      dockerfile: build/PluginService.Dockerfile
+      context: .
+      target: dev
+    volumes:
+      - ./plugins:/detecctor/plugins
+      - ./configuration/plugin-config.yaml:/detecctor-v2/configuration/plugin-config.yaml
+  notification-service:
+    build:
+      dockerfile: build/NotificationService.Dockerfile
+      context: .
+      target: dev
+    volumes:
+      - ./configuration/notification-config.yaml:/detecctor-v2/configuration/notification-config.yaml
+  management-service:
+    build:
+      dockerfile: build/ManagementService.Dockerfile
+      context: .
+      target: dev
+    volumes:
+      - ./configuration/management-config.yaml:/detecctor-v2/configuration/management-config.yaml
+  emqx1:
+    image: emqx/emqx:latest
+    environment:
+      - "EMQX_NAME=emqx"
+      - "EMQX_HOST=localhost"
+      - "EMQX_LISTENER__TCP__EXTERNAL=1883"
+      - "EMQX_CLUSTER__DISCOVERY=static"
+      - "EMQX_CLUSTER__STATIC__SEEDS=emqx@localhost,emqx@localhost"
+    network_mode: host
+  mongodb:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=pass12345
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - mongodb-data:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  mongo-express:
+    image: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=pass12345
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+    volumes:
+      - mongodb-data
+    depends_on:
+      - mongodb
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: wget --quiet --tries=3 --spider http://admin:admin123@mongodb:8081 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+volumes:
+  mongodb-data:
+    name: mongodb-data

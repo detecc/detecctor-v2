@@ -1,0 +1,54 @@
+AuthorizationError:
+  hash: sha1-95e251e7b3cc1f01c7ed160d2421e9a27df11942
+  other: Napaka pri avtorizaciji.
+ChatAuthorized:
+  hash: sha1-5f71fb87e53b8fc51b053be304de9785b061ad77
+  other: Pogovor uspešno avtoriziran.
+ChatUnauthorized:
+  hash: sha1-c5747ca8f6581b63b7ddb76a47ec674c71b8a6ff
+  other: Niste pooblaščeni za uporabo ukaza.
+ClientDisconnected:
+  hash: sha1-6c56bb42352a7d98090263a4d6e1d08237bde866
+  other: Klient {{.ServiceNodeKey}} je izgubil povezavo ob {{.Time}}.
+GeneratedToken:
+  hash: sha1-88f4b35eb9f40bde56c4109183a66ca1537fc46a
+  other: Generiran je žeton za avtorizacijo.
+InvalidArguments:
+  few: Neveljavni argumenti.
+  hash: sha1-c83be98b0df67b85dda471c4f0e08d9948550727
+  one: Neveljaven argument.
+  other: Neveljavni argumenti.
+  two: Neveljavna argumenta.
+InvalidPluginType:
+  hash: sha1-162735848be7097088c096d266c766f07746dd6f
+  other: 'Plugin {{.Plugin}} je napačnega tipa: {{.PluginType}}'
+InvalidToken:
+  hash: sha1-08357654968bdb1753c54b1736ca199ee5f2e59d
+  other: Neveljaven žeton.
+PluginExecutionFailed:
+  hash: sha1-e4ced4cd0571f1f5bd563243aeb3828d983dc871
+  other: 'Napaka pri izvajanju ukaza: {{.Error}}'
+SubscriptionFail:
+  hash: sha1-4d583966ea74f50e71ca5c3b666ea5d0dc773c94
+  other: 'Napaka pri naročanju: {{.Error}}'
+SubscriptionSuccess:
+  few: Uspešno naročanje na ukaze in/ali node.
+  hash: sha1-b16f39b142f982e12ca2634c7dc5b2494fa3fb19
+  one: Uspešno naročanje na ukaz in/ali node.
+  other: Uspešno naročanje na ukaze in/ali node.
+  two: Uspešno naročanje na ukaze in/ali node.
+UnableToSendMessage:
+  hash: sha1-6f09b8cca779787e5449740215115e38e22ddb30
+  other: 'Ni mogoče poslati sporočila {{.ServiceNodeKey}}: {{.Error}}'
+UnsubscribeFail:
+  hash: sha1-dc986624b87b3c19678484ad6a087639889f6fd2
+  other: 'Napaka pri odnaročanju: {{.Error}}'
+UnsubscribeSuccess:
+  few: Naročnina ukazov in/ali node-ov uspešno preklicana.
+  hash: sha1-b34340d0e7e798f1710cd8b0dcacfd1badd8262d
+  one: Naročnina ukazov in/ali node-ov uspešno preklicana.
+  other: Naročnina ukazov in/ali node-ov uspešno preklicana.
+  two: Naročnina ukazov in/ali node-ov uspešno preklicana.
+UnsupportedCommand:
+  hash: sha1-56248b83392c3301e69f531d656964fcaa4e28f9
+  other: Ukaz {{.Command}} ni podprt.

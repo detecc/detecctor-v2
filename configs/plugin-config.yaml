@@ -1,0 +1,18 @@
+mqttBroker:
+  host: localhost
+  port: 7777
+  username: "username"
+  password: "pass"
+  clientId: "clientId1"
+  tls:
+
+plugins:
+  dir: ../detecc-core/compiled/server
+  list:
+    - "hw-monitor"
+mongo:
+  database: "detecc"
+  host: "localhost"
+  username: "root"
+  password: "pass12345"
+  port: 27017
