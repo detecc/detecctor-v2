@@ -7,7 +7,7 @@ import (
 	"github.com/detecc/detecctor-v2/model/configuration"
 	"github.com/kkyr/fig"
 	"github.com/patrickmn/go-cache"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 )
@@ -83,7 +83,7 @@ func GetNotificationServiceConfiguration() *configuration.NotificationServiceCon
 
 	err = fig.Load(&config,
 		fig.File(filepath.Base(configurationFilePath)),
-		fig.Dirs(filepath.Dir(configurationFilePath)),
+		fig.Dirs(filepath.Dir(configurationFilePath), "/detecctor-v2/configuration/", "../../configs"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -119,7 +119,7 @@ func GetPluginServiceConfiguration() *configuration.PluginServiceConfiguration {
 
 	err = fig.Load(&config,
 		fig.File(filepath.Base(configurationFilePath)),
-		fig.Dirs(filepath.Dir(configurationFilePath)),
+		fig.Dirs(filepath.Dir(configurationFilePath), "/detecctor-v2/configuration/", "../../configs"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -155,7 +155,7 @@ func GetManagementServiceConfiguration() *configuration.PluginServiceConfigurati
 
 	err = fig.Load(&config,
 		fig.File(filepath.Base(configurationFilePath)),
-		fig.Dirs(filepath.Dir(configurationFilePath)),
+		fig.Dirs(filepath.Dir(configurationFilePath), "/detecctor-v2/configuration/", "../../configs"),
 	)
 	if err != nil {
 		log.Fatal(err)

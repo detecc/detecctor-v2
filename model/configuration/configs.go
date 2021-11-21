@@ -7,8 +7,9 @@ type (
 	}
 
 	NotificationServiceConfiguration struct {
-		BaseServiceConfiguration
-		Bot BotConfiguration `fig:"bot" validate:"required"`
+		MqttBroker MqttBroker       `fig:"mqttBroker" validate:"required"`
+		Mongo      Database         `fig:"mongo" validate:"required"`
+		Bot        BotConfiguration `fig:"bot" validate:"required"`
 	}
 
 	PluginServiceConfiguration struct {
