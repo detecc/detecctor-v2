@@ -3,22 +3,24 @@ package configuration
 type (
 	BaseServiceConfiguration struct {
 		MqttBroker MqttBroker `fig:"mqttBroker" validate:"required"`
-		Mongo      Database   `fig:"mongo" validate:"required"`
+		Database   Database   `fig:"database" validate:"required"`
 	}
 
 	NotificationServiceConfiguration struct {
 		MqttBroker MqttBroker       `fig:"mqttBroker" validate:"required"`
-		Mongo      Database         `fig:"mongo" validate:"required"`
+		Database   Database         `fig:"database" validate:"required"`
 		Bot        BotConfiguration `fig:"bot" validate:"required"`
 	}
 
 	PluginServiceConfiguration struct {
-		BaseServiceConfiguration
+		MqttBroker          MqttBroker          `fig:"mqttBroker" validate:"required"`
+		Database            Database            `fig:"database" validate:"required"`
 		PluginConfiguration PluginConfiguration `fig:"plugins" validate:"required"`
 	}
 
 	ManagementServiceConfiguration struct {
-		BaseServiceConfiguration
+		MqttBroker MqttBroker `fig:"mqttBroker" validate:"required"`
+		Database   Database   `fig:"database" validate:"required"`
 	}
 
 	MqttBroker struct {

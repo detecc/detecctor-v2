@@ -48,7 +48,7 @@ func TranslateReplyMessage(chatId string, content interface{}) (string, error) {
 	}).Debug("Translating a reply message")
 
 	// Get the preferred language for the chat
-	lang, err2 := database.GetLanguage(chatId)
+	lang, err2 := database.GetChatRepository().GetLanguage(chatId)
 	if err2 != nil {
 		return "", err2
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/detecc/detecctor-v2/database"
 	"github.com/detecc/detecctor-v2/internal/config"
+	"github.com/detecc/detecctor-v2/internal/logging"
 	"github.com/detecc/detecctor-v2/internal/mqtt"
 	"github.com/detecc/detecctor-v2/service/notification/bot"
 	"github.com/detecc/detecctor-v2/service/notification/proxy"
@@ -12,20 +13,8 @@ import (
 	"os/signal"
 )
 
-func setupLogger(isProduction bool) {
-	if isProduction {
-		log.SetFormatter(&log.JSONFormatter{})
-		log.SetOutput(os.Stdout)
-		return
-	}
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
-}
-
 func main() {
-	setupLogger(false)
+	logging.SetupLogger(false)
 	log.Info("Starting notification service..")
 
 	// Create exit handlers
@@ -39,8 +28,8 @@ func main() {
 	// Get configuration for the service
 	notificationConfig := config.GetNotificationServiceConfiguration()
 
-	// Connect to Mongo
-	database.Connect(notificationConfig.Mongo)
+	// Connect to Database
+	database.Connect(notificationConfig.Database)
 
 	// Create a new bot for notifications
 	nBot := bot.NewBot(notificationConfig.Bot)
@@ -52,6 +41,15 @@ func main() {
 	botProxy := proxy.NewProxy(nBot, mqttClient)
 	botProxy.Start(ctx)
 
-	<-quitChannel
-	cancel()
+Loop:
+	for {
+		select {
+		case <-ctx.Done():
+			log.Info("Stopping the notification service..")
+			break Loop
+		case <-quitChannel:
+			cancel()
+			break
+		}
+	}
 }

@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"github.com/detecc/detecctor-v2/model/configuration"
 	"github.com/detecc/detecctor-v2/model/reply"
 	"github.com/detecc/detecctor-v2/service/notification"
@@ -18,11 +19,11 @@ type (
 		// Start should initialize the bot to listen to the chat.
 		Start()
 		// ListenToChannels is called after the start function. It monitors the chat and should send the message data to the Message channel.
-		ListenToChannels()
+		ListenToChannels(ctx context.Context)
 		// ReplyToChat after receiving the command results or if an error occurs.
 		ReplyToChat(replyMessage reply.Reply)
 		// GetMessageChannel returns the channel the bot is supposed to notify the proxy of the incoming message.
-		GetMessageChannel() chan notification.ProxyMessage
+		GetMessageChannel() <-chan notification.ProxyMessage
 	}
 )
 
@@ -36,7 +37,7 @@ func NewBot(botConfiguration configuration.BotConfiguration) Bot {
 			Token: botConfiguration.Token,
 		}
 	default:
-		log.Fatal("Unsupported bot type")
+		log.Fatalf("Unsupported bot type: %s", botConfiguration.Type)
 		return nil
 	}
 }

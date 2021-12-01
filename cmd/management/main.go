@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/detecc/detecctor-v2/database"
 	"github.com/detecc/detecctor-v2/internal/config"
+	"github.com/detecc/detecctor-v2/internal/logging"
 	"github.com/detecc/detecctor-v2/internal/mqtt"
 	"github.com/detecc/detecctor-v2/service/management"
 	log "github.com/sirupsen/logrus"
@@ -11,20 +12,8 @@ import (
 	"os/signal"
 )
 
-func setupLogger(isProduction bool) {
-	if isProduction {
-		log.SetFormatter(&log.JSONFormatter{})
-		log.SetOutput(os.Stdout)
-		return
-	}
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
-}
-
 func main() {
-	setupLogger(false)
+	logging.SetupLogger(false)
 	log.Info("Starting the management service...")
 
 	// Create exit handlers
@@ -38,8 +27,8 @@ func main() {
 	// Get configuration for management service
 	managementConfig := config.GetManagementServiceConfiguration()
 
-	// Connect to Mongo
-	database.Connect(managementConfig.Mongo)
+	// Connect to Database
+	database.Connect(managementConfig.Database)
 
 	// Start listening to the topics
 	mqttClient := mqtt.NewMqttClient(managementConfig.MqttBroker)
@@ -48,13 +37,16 @@ func main() {
 	mqttClient.Subscribe(management.ClientRegister, management.ClientRegisterHandler)
 	mqttClient.Subscribe(management.ClientHeartbeat, management.ClientRegisterHandler)
 
+Loop:
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info("Stopping the management service..")
-			break
+			mqttClient.Disconnect()
+			break Loop
 		case <-quitChannel:
 			cancel()
+			break
 		}
 	}
 }

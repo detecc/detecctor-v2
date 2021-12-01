@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/detecc/detecctor-v2/database"
 	"github.com/detecc/detecctor-v2/internal/config"
+	"github.com/detecc/detecctor-v2/internal/logging"
 	"github.com/detecc/detecctor-v2/internal/mqtt"
 	plugin2 "github.com/detecc/detecctor-v2/service/plugin"
 	"github.com/detecc/detecctor-v2/service/plugin/plugin"
@@ -12,20 +13,8 @@ import (
 	"os/signal"
 )
 
-func setupLogger(isProduction bool) {
-	if isProduction {
-		log.SetFormatter(&log.JSONFormatter{})
-		log.SetOutput(os.Stdout)
-		return
-	}
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
-}
-
 func main() {
-	setupLogger(false)
+	logging.SetupLogger(false)
 	log.Info("Starting the plugin service..")
 
 	// Create exit handlers
@@ -39,25 +28,27 @@ func main() {
 	// Get the service configuration
 	pluginConfig := config.GetPluginServiceConfiguration()
 
-	// Connect to the Mongo
-	database.Connect(pluginConfig.Mongo)
+	// Connect to the Database
+	database.Connect(pluginConfig.Database)
 
 	// Load plugins into the manager
 	plugin.GetPluginManager().LoadPlugins(pluginConfig.PluginConfiguration)
 
-	//Start listening to the MQTT client
+	// Start listening to the MQTT client
 	mqttClient := mqtt.NewMqttClient(pluginConfig.MqttBroker)
-	//mqttClient.Subscribe(plugin2.Metadata, plugin2.MetadataHandler)
 	mqttClient.Subscribe(plugin2.ExecutionTopic, plugin2.ExecutionHandler)
 	mqttClient.Subscribe(plugin2.ResponseTopic, plugin2.ResponseHandler)
 
+Loop:
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info("Stopping the plugin service..")
-			break
+			mqttClient.Disconnect()
+			break Loop
 		case <-quitChannel:
 			cancel()
+			break
 		}
 	}
 }

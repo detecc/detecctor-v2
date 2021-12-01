@@ -12,13 +12,13 @@ import (
 type (
 	Topic string
 
-	MessageHandler func(client Client, payloadId uint16, structure interface{}, err error)
+	MessageHandler func(client Client, topicIds []string, payloadId uint16, payload interface{}, err error)
 
 	// Client is an interface wrapper for a simple MQTT client.
 	Client interface {
 		Disconnect()
 		Publish(topic Topic, message interface{}) error
-		Subscribe(topic Topic, handler mqtt.MessageHandler)
+		Subscribe(topic Topic, handler MessageHandler)
 	}
 
 	// ClientImpl concrete implementation of the Client, which is essentially a wrapper over the mqtt lib.
@@ -65,49 +65,62 @@ func NewMqttClient(clientSettings configuration.MqttBroker) Client {
 }
 
 func (c *ClientImpl) Disconnect() {
+	log.Debug("Disconnecting the MQTT client")
 	c.mqttClient.Disconnect(100)
 }
 
 // Publish a new message to a topic
 func (c *ClientImpl) Publish(topic Topic, message interface{}) error {
-	log.WithFields(log.Fields{
+	logInfo := log.WithFields(log.Fields{
 		"topic":   topic,
 		"message": message,
-	}).Debug("Publishing a message to topic")
+	})
+	logInfo.Debug("Publishing a message to topic")
 
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"topic":   topic,
-			"error":   err,
-			"message": message,
-		}).Error("Error marshalling the message")
+		logInfo.Errorf("Error marshalling the message: %v", err)
 		return err
 	}
 
 	token := c.mqttClient.Publish(string(topic), 1, false, jsonMessage)
 	go func(token mqtt.Token) {
-		token.Wait()
-		log.Println(token.Error())
+		if token.Error() != nil {
+			log.Warn(token.Error())
+		}
 	}(token)
 	return nil
 }
 
 // Subscribe to a topic
-func (c *ClientImpl) Subscribe(topic Topic, handler mqtt.MessageHandler) {
-	log.WithField("topic", topic).Debug("Subscribing to topic")
+func (c *ClientImpl) Subscribe(topic Topic, handler MessageHandler) {
+	logInfo := log.WithField("topic", topic)
+	logInfo.Debug("Subscribing to a topic")
 
 	token := c.mqttClient.Subscribe(string(topic), 1, func(client mqtt.Client, message mqtt.Message) {
-		log.Println("s")
-		err := json.Unmarshal(message.Payload(), &handler)
+		var data interface{}
+
+		// Transform the payload to the object and pass it to the handler function for further processing
+		err := json.Unmarshal(message.Payload(), &data)
 		if err != nil {
+			logInfo.Errorf("Error parsing the data: %v", err)
 			return
 		}
 
+		// Parse the topic and get the Ids based on the original topic.
+		ids, err := GetIdsFromTopic(message.Topic(), topic)
+		if err != nil {
+			logInfo.Errorf("Error getting the topic info: %v", err)
+			return
+		}
+
+		handler(c, ids, message.MessageID(), data, err)
 	})
 
 	go func(token mqtt.Token) {
 		token.Wait()
-		log.Println(token.Error())
+		if token.Error() != nil {
+			log.Warn(token.Error())
+		}
 	}(token)
 }

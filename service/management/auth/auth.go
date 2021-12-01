@@ -12,13 +12,22 @@ import (
 func GenerateChatAuthenticationToken(chatId string) {
 	log.WithField("chatId", chatId).Debug("Generating a new authentication token")
 
+	token := GenerateToken()
+	if token == "" {
+		return
+	}
+
+	cache.Memory().Set(fmt.Sprintf("auth-token-%s", chatId), token, time.Minute*5)
+	log.Info(token)
+}
+
+func GenerateToken() string {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
-		log.WithField("chatId", chatId).Error("Error generating a new authentication token")
-		return
+		log.Errorf("Error generating a new token: %v", err)
+		return ""
 	}
-	authToken := fmt.Sprintf("%x", b)
-	cache.Memory().Set(fmt.Sprintf("auth-token-%s", chatId), authToken, time.Minute*5)
-	log.Info(authToken)
+
+	return fmt.Sprintf("%x", b)
 }

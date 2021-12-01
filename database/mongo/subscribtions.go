@@ -1,6 +1,7 @@
-package database
+package mongo
 
 import (
+	"context"
 	. "github.com/detecc/detecctor-v2/model/chat"
 	"github.com/kamva/mgm/v3"
 	"github.com/kamva/mgm/v3/operator"
@@ -9,9 +10,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type SubscriptionRepository struct{}
+
+func NewSubscriptionRepository() *SubscriptionRepository {
+	return &SubscriptionRepository{}
+}
+
 // GetSubscribedChats get all the chats that include subscription(s) where the nodeId == nodeId and command == command
 // or either node == * or command == *.
-func GetSubscribedChats(nodeId, command string) ([]Chat, error) {
+func (s *SubscriptionRepository) GetSubscribedChats(ctx context.Context, nodeId, command string) ([]Chat, error) {
 	return getChats(
 		bson.M{"subscriptions.nodeId": bson.M{
 			operator.In: bson.A{nodeId, "*"},
@@ -23,7 +30,7 @@ func GetSubscribedChats(nodeId, command string) ([]Chat, error) {
 	)
 }
 
-func SubscribeToAll(chatId string) error {
+func (s *SubscriptionRepository) SubscribeToAll(ctx context.Context, chatId string) error {
 	log.WithField("chatId", chatId).Debug("Subscribing to all clients and commands")
 
 	return mgm.Transaction(func(session mongo.Session, sc mongo.SessionContext) error {
@@ -49,7 +56,7 @@ func SubscribeToAll(chatId string) error {
 	})
 }
 
-func SubscribeTo(chatId string, clients []string, commands []string) error {
+func (s *SubscriptionRepository) SubscribeTo(ctx context.Context, chatId string, clients []string, commands []string) error {
 	log.WithFields(log.Fields{
 		"chatId":   chatId,
 		"clients":  clients,
@@ -103,26 +110,7 @@ func SubscribeTo(chatId string, clients []string, commands []string) error {
 	})
 }
 
-func createSubscriptions(clients []string, commands []string) []Subscription {
-	var subscriptions []Subscription
-
-	for _, clientId := range clients {
-		// check if the node exists
-		_, err := GetClientWithServiceNodeKey(clientId)
-		if err != nil && clientId != "*" {
-			log.WithField("clientId", clientId).Debug("Error creating subscription; client doesn't exist")
-			continue
-		}
-
-		for _, command := range commands {
-			subscriptions = append(subscriptions, Subscription{Client: clientId, Command: command})
-		}
-	}
-
-	return subscriptions
-}
-
-func UnSubscribeFromAll(chatId string) error {
+func (s *SubscriptionRepository) UnSubscribeFromAll(ctx context.Context, chatId string) error {
 	log.WithField("chatId", chatId).Debug("Unsubscribing from all")
 
 	return mgm.Transaction(func(session mongo.Session, sc mongo.SessionContext) error {
@@ -143,7 +131,7 @@ func UnSubscribeFromAll(chatId string) error {
 	})
 }
 
-func UnSubscribeFrom(chatId string, clients []string, commands []string) error {
+func (s *SubscriptionRepository) UnSubscribeFrom(ctx context.Context, chatId string, clients []string, commands []string) error {
 	log.WithFields(log.Fields{
 		"chatId":   chatId,
 		"clients":  clients,
@@ -206,4 +194,23 @@ func UnSubscribeFrom(chatId string, clients []string, commands []string) error {
 
 		return session.CommitTransaction(sc)
 	})
+}
+
+func createSubscriptions(clients []string, commands []string) []Subscription {
+	var subscriptions []Subscription
+
+	for _, clientId := range clients {
+		// check if the node exists
+		_, err := getClient(bson.M{"serviceNodeKey": clientId})
+		if err != nil && clientId != "*" {
+			log.WithField("clientId", clientId).Debug("Error creating subscription; client doesn't exist")
+			continue
+		}
+
+		for _, command := range commands {
+			subscriptions = append(subscriptions, Subscription{Client: clientId, Command: command})
+		}
+	}
+
+	return subscriptions
 }

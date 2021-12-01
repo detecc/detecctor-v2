@@ -107,7 +107,7 @@ func loadTranslations() {
 	defer log.Info("Successfully loaded translations:", supportedLanguages)
 
 	err := filepath.Walk("./i18n/translations", func(path string, info os.FileInfo, err error) error {
-		//load all active.*.yaml translations into the bundle
+		// Load all active.*.yaml translations into the bundle
 		if info != nil && !info.IsDir() && strings.Contains(info.Name(), "active.") {
 			return loadTranslation(path, info)
 		}
@@ -119,18 +119,18 @@ func loadTranslations() {
 		log.Errorf("An error occured when loading translations:%v", err)
 	}
 
-	// create a matcher based on imported translation files.
+	// Create a matcher based on imported translation files.
 	Matcher = language.NewMatcher(supportedLanguages)
 }
 
 func loadTranslation(path string, info os.FileInfo) error {
-	//active.en.yaml -> en
+	// Example file name: active.en.yaml -> get "en"
 	strs := strings.Split(info.Name(), ".")
 	if len(strs) < 2 {
 		return fmt.Errorf("invalid file name")
 	}
 
-	// the language is second to last
+	// The language is second to last
 	lang := strs[len(strs)-2]
 
 	log.Debugf("Loading a translation: %s", lang)
@@ -140,7 +140,7 @@ func loadTranslation(path string, info os.FileInfo) error {
 		return err
 	}
 
-	// load the translation file
+	// Load the translation file
 	_, err = bundle.LoadMessageFile(path)
 	return err
 }

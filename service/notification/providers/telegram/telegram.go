@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"github.com/detecc/detecctor-v2/database"
 	"github.com/detecc/detecctor-v2/model/reply"
@@ -31,14 +32,14 @@ func (t *Telegram) Start() {
 }
 
 //GetMessageChannel returns the channel for outgoing messages
-func (t *Telegram) GetMessageChannel() chan notification.ProxyMessage {
+func (t *Telegram) GetMessageChannel() <-chan notification.ProxyMessage {
 	return t.messageChannel
 }
 
 // ListenToChannels listens for incoming data from telegram bot messages
-func (t *Telegram) ListenToChannels() {
+func (t *Telegram) ListenToChannels(ctx context.Context) {
 	log.Infof("Authorized on account %s", t.botAPI.Self.UserName)
-	message, err := database.GetStatistics()
+	message, err := database.GetStatistics().GetStatistics(nil)
 
 	lastMessageId := 0
 	if err == nil {
@@ -76,6 +77,9 @@ func (t *Telegram) ListenToChannels() {
 				}
 			}
 			break
+		case <-ctx.Done():
+			log.Info("Stopping the Telegram bot..")
+			return
 		}
 	}
 }

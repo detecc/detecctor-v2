@@ -2,16 +2,15 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/detecc/detecctor-v2/database"
 	"github.com/detecc/detecctor-v2/internal/mqtt"
-	"github.com/detecc/detecctor-v2/internal/payload"
+	pl "github.com/detecc/detecctor-v2/internal/payload"
 	command2 "github.com/detecc/detecctor-v2/model/command"
 	"github.com/detecc/detecctor-v2/model/command/logs"
 	. "github.com/detecc/detecctor-v2/model/payload"
 	"github.com/detecc/detecctor-v2/service/plugin/plugin"
-	mqtt2 "github.com/eclipse/paho.mqtt.golang"
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,71 +19,50 @@ const (
 	ResponseTopic  = mqtt.Topic("plugin/+/execute/response")
 )
 
-var ExecutionHandler = func(client mqtt2.Client, message mqtt2.Message) {
-	log.WithFields(log.Fields{
-		"topic":   message.Topic(),
-		"payload": message.Payload(),
-	}).Debug("Received plugin execution request")
+var ExecutionHandler = func(client mqtt.Client, topicIds []string, payloadId uint16, payload interface{}, err error) {
+	pluginName := topicIds[0]
 
-	// parse the topic for ids
-	pluginName, err := getPluginNameFromTopic(message.Topic())
-	if err != nil {
-		return
-	}
+	logInfo := log.WithFields(log.Fields{
+		"pluginName": pluginName,
+		"payload":    payload,
+	})
+	logInfo.Debug("Received plugin execution request")
 
 	command := command2.Command{}
-	err = json.Unmarshal(message.Payload(), &command)
+	err = mapstructure.Decode(payload, &command)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":   err,
-			"payload": message.Payload(),
-			"topic":   message.Topic(),
-		}).Error("Could not unmarshall the payload")
+		logInfo.Errorf("Error decoding the map: %v", err)
 		return
 	}
 
-	// get a plugin if it exists
+	// Get a plugin if it exists
 	mPlugin, err := plugin.GetPluginManager().GetPlugin(pluginName)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":      err,
-			"pluginName": pluginName,
-			"topic":      message.Topic(),
-		}).Error("Plugin doesn't exist")
-
-		database.UpdateCommandLogWithId(command.MessageId, logs.WithErrors(err))
+		logInfo.Errorf("Plugin doesnt exist: %v", err)
+		database.GetLogRepository().UpdateCommandLogWithId(nil, command.MessageId, logs.WithErrors(err))
 		return
 	}
 
-	// execute any middleware before executing the actual plugin
+	// Execute any middleware before executing the actual plugin
 	middlewareExecErr := executeMiddleware(context.Background(), mPlugin.GetMetadata())
 
-	// execute the plugin with given arguments
-
-	log.WithField("pluginName", pluginName).Debug("Executing the plugin")
+	// Execute the plugin with given arguments
+	logInfo.Debug("Executing the plugin")
 	payloads, err := mPlugin.Execute()
-	database.UpdateCommandLogWithId(command.MessageId, logs.WithPayloads(payloads...), logs.WithErrors(err, middlewareExecErr))
+	database.GetLogRepository().UpdateCommandLogWithId(nil, command.MessageId, logs.WithPayloads(payloads...), logs.WithErrors(err, middlewareExecErr))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":      err,
-			"pluginName": pluginName,
-			"messageId":  command.MessageId,
-		}).Error("Error executing the plugin")
+		logInfo.Errorf("Error executing the plugin for message %s: %v", command.MessageId, err)
 		return
 	}
 
 	switch mPlugin.GetMetadata().Type {
 	case plugin.ServerClient:
-		log.WithFields(log.Fields{
-			"messageId":  command.MessageId,
-			"pluginName": pluginName,
-			"payloads":   payloads,
-		}).Debug("Sending payloads to the clients")
+		logInfo.Debugf("Sending payloads to the clients: %v", payloads)
 
 		for _, response := range payloads {
-			// send the data to the client(s)
-			payload.GeneratePayloadId(&response, command.ChatId)
-			client.Publish("client/{id}/plugin/{pluginName}/execute", 1, false, response)
+			// Send the data to the client(s)
+			pl.GeneratePayloadId(&response, command.ChatId)
+			client.Publish("client/{id}/plugin/{pluginName}/execute", response)
 		}
 		break
 	case plugin.ServerOnly:
@@ -92,59 +70,34 @@ var ExecutionHandler = func(client mqtt2.Client, message mqtt2.Message) {
 	}
 }
 
-var ResponseHandler = func(client mqtt2.Client, message mqtt2.Message) {
-	log.WithFields(log.Fields{
-		"topic":   message.Topic(),
-		"payload": message.Payload(),
-	}).Debug("Received client plugin execution response")
+var ResponseHandler = func(client mqtt.Client, topicIds []string, payloadId uint16, payload interface{}, err error) {
+	logInfo := log.WithFields(log.Fields{
+		"payload": payload,
+		"topic":   topicIds[0],
+	})
 
-	// parse the topic for ids
-	pluginName, err := getPluginNameFromTopic(message.Topic())
-	if err != nil {
-		return
-	}
+	pluginName := topicIds[0]
+	logInfo.Debug("Received client plugin execution response")
 
-	payload := Payload{}
-	err = json.Unmarshal(message.Payload(), &payload)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":   err,
-			"payload": message.Payload(),
-			"topic":   message.Topic(),
-		}).Error("Could not unmarshall the payload")
-		return
-	}
+	nPayload := payload.(Payload)
 
-	// get the plugin from the manager
+	// Get the plugin from the manager
 	mPlugin, err := plugin.GetPluginManager().GetPlugin(pluginName)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":      err,
-			"pluginName": pluginName,
-			"topic":      message.Topic(),
-		}).Error("Plugin doesn't exist")
+		logInfo.Errorf("Plugin doesn't exist: %v", err)
 		return
 	}
 
-	// process the client response
-	log.Println("Processing the response..")
-	reply, err := mPlugin.Response(payload)
-	database.AddCommandResponse(payload.Id, logs.WithResponse(reply))
+	// Process the client response
+	logInfo.Info("Processing the response..")
+	reply, err := mPlugin.Response(nPayload)
+	database.GetLogRepository().AddCommandResponse(nil, nPayload.Id, logs.WithResponse(reply))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":     err,
-			"payloadId": payload,
-			"reply":     reply,
-			"topic":     message.Topic(),
-		}).Error("The client response could not be processed")
+		logInfo.Errorf("The client response could not be processed: %v", err)
 	}
 
-	// forward the message to the notification service
-	log.WithFields(log.Fields{
-		"pluginName": pluginName,
-		"payloadId":  payload.Id,
-		"topic":      message.Topic(),
-		"reply":      reply,
-	}).Debug("Sending the response to the notification service")
-	client.Publish(fmt.Sprintf("chat/%s/notify", reply.ChatId), 1, false, reply)
+	// Forward the message to the notification service
+	logInfo.Debugf("Sending the response to the notification service: %v", reply)
+
+	client.Publish(mqtt.Topic(fmt.Sprintf("chat/%s/notify", reply.ChatId)), reply)
 }

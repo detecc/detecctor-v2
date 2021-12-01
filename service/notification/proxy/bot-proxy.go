@@ -2,16 +2,16 @@ package proxy
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/detecc/detecctor-v2/database"
+	"github.com/detecc/detecctor-v2/database/repositories"
 	"github.com/detecc/detecctor-v2/internal/mqtt"
 	"github.com/detecc/detecctor-v2/model/command"
 	"github.com/detecc/detecctor-v2/model/command/logs"
 	"github.com/detecc/detecctor-v2/model/reply"
 	"github.com/detecc/detecctor-v2/service/notification"
 	"github.com/detecc/detecctor-v2/service/notification/bot"
-	mqtt2 "github.com/eclipse/paho.mqtt.golang"
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
@@ -21,16 +21,23 @@ const (
 	ReceiveNotificationTopic = mqtt.Topic("chat/+/notify")
 )
 
-var once = sync.Once{}
-var proxy *Proxy
+var (
+	once  = sync.Once{}
+	proxy *Proxy
+)
 
 type (
 	// Proxy acts as a proxy between the Bot implementation and the notification service.
 	// It performs all the database operations and handles the bot communication.
 	Proxy struct {
-		bot          bot.Bot
-		client       mqtt.Client
-		replyBuilder *reply.Builder
+		bot               bot.Bot
+		client            mqtt.Client
+		replyBuilder      *reply.Builder
+		messageRepository repositories.MessageRepository
+		statistics        repositories.Statistics
+		chatRepository    repositories.ChatRepository
+		clientRepository  repositories.ClientRepository
+		logRepository     repositories.LogRepository
 	}
 )
 
@@ -38,9 +45,14 @@ type (
 func NewProxy(bot bot.Bot, client mqtt.Client) *Proxy {
 	once.Do(func() {
 		proxy = &Proxy{
-			bot:          bot,
-			client:       client,
-			replyBuilder: reply.NewReplyBuilder(),
+			bot:               bot,
+			client:            client,
+			replyBuilder:      reply.NewReplyBuilder(),
+			messageRepository: database.GetMessageRepository(),
+			statistics:        database.GetStatistics(),
+			chatRepository:    database.GetChatRepository(),
+			clientRepository:  database.GetClientRepository(),
+			logRepository:     database.GetLogRepository(),
 		}
 	})
 	return proxy
@@ -55,40 +67,35 @@ func (proxy *Proxy) Start(ctx context.Context) {
 	log.Info("Starting the proxy...")
 	defer log.Info("Stopping the proxy..")
 
-	handler := func(client mqtt2.Client, message mqtt2.Message) {
+	handler := func(client mqtt.Client, topicIds []string, payloadId uint16, payload interface{}, err error) {
 		replyMsg := reply.Reply{}
-		err := json.Unmarshal(message.Payload(), &replyMsg)
+		err = mapstructure.Decode(payload, &replyMsg)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"topic":   message.Topic(),
-				"payload": message.Payload(),
-			}).Errorln("Cannot convert the payload to reply")
+			log.Errorf("%v", err)
 			return
 		}
 
-		// if the message is translatable, translate it before replying to the bot
+		// If the message is translatable, translate it before replying to the bot
 		if replyMsg.ReplyType == reply.TranslatableMessage {
 			replyMessage, err := TranslateReplyMessage(replyMsg.ChatId, replyMsg.Content)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"chatId":  replyMsg.ChatId,
 					"content": replyMsg.Content,
-				}).Error("Cannot translate the reply message")
-				log.Println(err)
+				}).Errorf("Cannot translate the reply message: %v", err)
 				return
 			}
 
 			replyMsg.ReplyType = reply.TypeMessage
 			replyMsg.Content = replyMessage
 		}
-
 		proxy.bot.ReplyToChat(replyMsg)
 	}
 	proxy.client.Subscribe(ReceiveNotificationTopic, handler)
 
 	proxy.bot.Start()
 	go proxy.listenForMessages(ctx)
-	proxy.bot.ListenToChannels()
+	go proxy.bot.ListenToChannels(ctx)
 }
 
 // cleanup cleans up the bot and other components
@@ -102,12 +109,13 @@ func (proxy *Proxy) listenForMessages(ctx context.Context) {
 	for {
 		select {
 		case message := <-proxy.bot.GetMessageChannel():
-			// ignore any non-Message Updates
+			// Ignore any non-Message Updates
 			proxy.processMessage(message)
 			break
 		case <-ctx.Done():
 			log.Info("Stopping the proxy listener..")
 			proxy.cleanup()
+			return
 		}
 	}
 }
@@ -118,7 +126,7 @@ func (proxy *Proxy) listenForMessages(ctx context.Context) {
 func (proxy *Proxy) processMessage(message notification.ProxyMessage) {
 	log.WithField("message", message).Debug("Processing a message")
 
-	err := database.AddChatIfDoesntExist(message.ChatId, message.Username)
+	err := proxy.chatRepository.AddChatIfDoesntExist(nil, message.ChatId, message.Username)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":  err,
@@ -127,7 +135,7 @@ func (proxy *Proxy) processMessage(message notification.ProxyMessage) {
 	}
 
 	// Add a new message to database
-	_, err = database.NewMessage(message.ChatId, message.MessageId, message.Message)
+	_, err = proxy.messageRepository.NewMessage(nil, message.ChatId, message.MessageId, message.Message)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":     err,
@@ -138,7 +146,7 @@ func (proxy *Proxy) processMessage(message notification.ProxyMessage) {
 	}
 
 	// Update last message id
-	err = database.UpdateLastMessageId(message.MessageId)
+	err = proxy.statistics.UpdateLastMessageId(nil, message.MessageId)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":     err,
@@ -193,5 +201,5 @@ func (proxy *Proxy) processMessage(message notification.ProxyMessage) {
 		}).Error("Error sending the command to the topic")
 	}
 
-	database.AddCommandLog(cmd, logs.WithErrors(err))
+	proxy.logRepository.AddCommandLog(nil, cmd, logs.WithErrors(err))
 }

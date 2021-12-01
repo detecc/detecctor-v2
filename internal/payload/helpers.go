@@ -2,8 +2,6 @@ package payload
 
 import (
 	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"github.com/detecc/detecctor-v2/internal/cache"
 	"github.com/detecc/detecctor-v2/model/payload"
@@ -11,29 +9,6 @@ import (
 	"net"
 	"time"
 )
-
-func EncodePayload(payload *payload.Payload) (string, error) {
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	b64Payload := base64.StdEncoding.EncodeToString(data)
-
-	return b64Payload, nil
-}
-
-func DecodePayload(data []byte, payload *payload.Payload) error {
-	jsonData, err := base64.StdEncoding.DecodeString(string(data))
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(jsonData, payload)
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 // Uuid creates unique identifier.
 func Uuid() string {

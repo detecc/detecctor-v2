@@ -55,7 +55,7 @@ func (b *MessageBuilder) Build() ProxyMessage {
 	}
 
 	defer func() {
-		// clear any actions
+		// Clear any actions
 		b.buildArgs = []messageHandler{}
 	}()
 

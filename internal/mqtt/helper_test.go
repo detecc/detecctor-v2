@@ -13,26 +13,26 @@ func (suite *MqttTestSuite) SetupTest() {
 }
 
 func (suite *MqttTestSuite) TestGetIdsFromTopic() {
-	expectedIds := []string{"examplePloogin"}
-	ids, err := GetIdsFromTopic("plugin/examplePloogin/execute", "plugin/+/execute")
+	expectedIds := []string{"examplePlugin"}
+	ids, err := GetIdsFromTopic("plugin/examplePlugin/execute", "plugin/+/execute")
 	suite.Require().NoError(err)
 	suite.Require().Equal(expectedIds, ids)
 
 	ids, err = GetIdsFromTopic("plugin/execute", "plugin/+/execute")
 	suite.Require().Error(err)
 
-	ids, err = GetIdsFromTopic("ploogin/examplePloogin/execute", "plugin/+/execute")
+	ids, err = GetIdsFromTopic("ploogin/examplePlugin/execute", "plugin/+/execute")
 	suite.Require().Error(err)
 
-	ids, err = GetIdsFromTopic("ploogin/examplePloogin/execute", "plugin/execute")
+	ids, err = GetIdsFromTopic("ploogin/examplePlugin/execute", "plugin/execute")
 	suite.Require().Error(err)
 
-	ids, err = GetIdsFromTopic("plugin/examplePloogin/execute", "plugin/examplePloogin/execute")
+	ids, err = GetIdsFromTopic("plugin/examplePlugin/execute", "plugin/examplePlugin/execute")
 	suite.Require().Error(err)
 
-	ids, err = GetIdsFromTopic("plugin/examplePloogin/execute/example2/abc", "plugin/+/execute/+/abc")
+	ids, err = GetIdsFromTopic("plugin/examplePlugin/execute/example2/abc", "plugin/+/execute/+/abc")
 	suite.Require().NoError(err)
-	suite.Require().Equal([]string{"examplePloogin", "example2"}, ids)
+	suite.Require().Equal([]string{"examplePlugin", "example2"}, ids)
 }
 
 func (suite *MqttTestSuite) TestCreateTopicWithIds() {

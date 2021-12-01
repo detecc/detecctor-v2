@@ -58,36 +58,46 @@ func GetFlags(service Service) {
 	memory.Set(cacheKey, *configFileName, cache.NoExpiration)
 }
 
-// GetNotificationServiceConfiguration get the configuration from the configuration file and store the configuration in the cache
-func GetNotificationServiceConfiguration() *configuration.NotificationServiceConfiguration {
+func GetServiceConfiguration(config interface{}, cacheFilePathKey string) {
 	var (
-		config                configuration.NotificationServiceConfiguration
 		err                   error
 		configurationFilePath string
 		memory                = cache2.Memory()
-		isFound               bool
-		cachedConfiguration   interface{}
 	)
 
-	cachedConfiguration, isFound = memory.Get("notificationServiceConfiguration")
-	if isFound {
-		return cachedConfiguration.(*configuration.NotificationServiceConfiguration)
-	}
-
-	configurationPath, isFound := memory.Get("notificationServiceConfigFilePath")
+	configurationPath, isFound := memory.Get(cacheFilePathKey)
 	if isFound {
 		configurationFilePath = configurationPath.(string)
 	} else {
 		log.Fatal("No configuration file path found!")
 	}
 
-	err = fig.Load(&config,
+	err = fig.Load(config,
 		fig.File(filepath.Base(configurationFilePath)),
 		fig.Dirs(filepath.Dir(configurationFilePath), "/detecctor-v2/configuration/", "../../configs"),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// GetNotificationServiceConfiguration get the configuration from the configuration file and store the configuration in the cache
+func GetNotificationServiceConfiguration() *configuration.NotificationServiceConfiguration {
+	var (
+		config              configuration.NotificationServiceConfiguration
+		memory              = cache2.Memory()
+		isFound             bool
+		cachedConfiguration interface{}
+	)
+
+	// Check if the configuration is cached
+	cachedConfiguration, isFound = memory.Get("notificationServiceConfiguration")
+	if isFound {
+		return cachedConfiguration.(*configuration.NotificationServiceConfiguration)
+	}
+
+	// Get configuration
+	GetServiceConfiguration(&config, "notificationServiceConfigFilePath")
 
 	memory.Set("notificationServiceConfiguration", &config, cache.NoExpiration)
 
@@ -97,33 +107,20 @@ func GetNotificationServiceConfiguration() *configuration.NotificationServiceCon
 // GetPluginServiceConfiguration get the configuration from the configuration file and store the configuration in the cache
 func GetPluginServiceConfiguration() *configuration.PluginServiceConfiguration {
 	var (
-		config                configuration.PluginServiceConfiguration
-		err                   error
-		configurationFilePath string
-		memory                = cache2.Memory()
-		isFound               bool
-		cachedConfiguration   interface{}
+		config              configuration.PluginServiceConfiguration
+		memory              = cache2.Memory()
+		isFound             bool
+		cachedConfiguration interface{}
 	)
 
+	// Check if the configuration is cached
 	cachedConfiguration, isFound = memory.Get("pluginServiceConfiguration")
 	if isFound {
 		return cachedConfiguration.(*configuration.PluginServiceConfiguration)
 	}
 
-	configurationPath, isFound := memory.Get("pluginServiceConfigFilePath")
-	if isFound {
-		configurationFilePath = configurationPath.(string)
-	} else {
-		log.Fatal("No configuration file path found!")
-	}
-
-	err = fig.Load(&config,
-		fig.File(filepath.Base(configurationFilePath)),
-		fig.Dirs(filepath.Dir(configurationFilePath), "/detecctor-v2/configuration/", "../../configs"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Get configuration
+	GetServiceConfiguration(&config, "pluginServiceConfigFilePath")
 
 	memory.Set("pluginServiceConfiguration", &config, cache.NoExpiration)
 
@@ -133,33 +130,20 @@ func GetPluginServiceConfiguration() *configuration.PluginServiceConfiguration {
 // GetManagementServiceConfiguration get the configuration from the configuration file and store the configuration in the cache
 func GetManagementServiceConfiguration() *configuration.PluginServiceConfiguration {
 	var (
-		config                configuration.PluginServiceConfiguration
-		err                   error
-		configurationFilePath string
-		memory                = cache2.Memory()
-		isFound               bool
-		cachedConfiguration   interface{}
+		config              configuration.PluginServiceConfiguration
+		memory              = cache2.Memory()
+		isFound             bool
+		cachedConfiguration interface{}
 	)
 
+	// Check if the configuration is cached
 	cachedConfiguration, isFound = memory.Get("managementServiceConfiguration")
 	if isFound {
 		return cachedConfiguration.(*configuration.PluginServiceConfiguration)
 	}
 
-	configurationPath, isFound := memory.Get("managementServiceConfigFilePath")
-	if isFound {
-		configurationFilePath = configurationPath.(string)
-	} else {
-		log.Fatal("No configuration file path found!")
-	}
-
-	err = fig.Load(&config,
-		fig.File(filepath.Base(configurationFilePath)),
-		fig.Dirs(filepath.Dir(configurationFilePath), "/detecctor-v2/configuration/", "../../configs"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Get configuration
+	GetServiceConfiguration(&config, "managementServiceConfigFilePath")
 
 	memory.Set("managementServiceConfiguration", &config, cache.NoExpiration)
 
