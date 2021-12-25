@@ -2,8 +2,9 @@ package mongo
 
 import (
 	"context"
-	. "github.com/detecc/detecctor-v2/model/command"
-	. "github.com/detecc/detecctor-v2/model/command/logs"
+	cmdLog "github.com/detecc/detecctor-v2/internal/command/logs"
+	. "github.com/detecc/detecctor-v2/internal/model/command"
+	. "github.com/detecc/detecctor-v2/internal/model/command/logs"
 	"github.com/kamva/mgm/v3"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,17 +17,17 @@ func NewLogRepository() *LogRepository {
 	return &LogRepository{}
 }
 
-func (l *LogRepository) AddCommandResponse(ctx context.Context, payloadId string, option ...ResponseOption) error {
+func (l *LogRepository) AddCommandResponse(ctx context.Context, payloadId string, option ...cmdLog.ResponseOption) error {
 	log.WithField("payloadId", payloadId).Debug("Adding a response for a command")
 
-	commandResponse := NewCommandResponseLog(payloadId, option...)
+	commandResponse := cmdLog.NewCommandResponseLog(payloadId, option...)
 	return addNewCommandResponse(commandResponse)
 }
 
-func (l *LogRepository) AddCommandLog(ctx context.Context, command Command, option ...Option) (string, error) {
+func (l *LogRepository) AddCommandLog(ctx context.Context, command Command, option ...cmdLog.Option) (string, error) {
 	log.WithField("messageId", command.MessageId).Debug("Adding a log for command")
 
-	commandLog := NewCommandLog(command, option...)
+	commandLog := cmdLog.NewCommandLog(command, option...)
 
 	err := addNewCommandLog(commandLog)
 	if err != nil {
@@ -36,7 +37,7 @@ func (l *LogRepository) AddCommandLog(ctx context.Context, command Command, opti
 	return commandLog.ID.String(), nil
 }
 
-func (l *LogRepository) UpdateCommandLogWithId(ctx context.Context, messageId string, options ...Option) error {
+func (l *LogRepository) UpdateCommandLogWithId(ctx context.Context, messageId string, options ...cmdLog.Option) error {
 	log.WithField("messageId", messageId).Debug("Updating a command log")
 
 	return mgm.Transaction(func(session mongo.Session, sc mongo.SessionContext) error {

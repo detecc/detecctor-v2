@@ -1,4 +1,4 @@
-# The guide to bot replies
+# 🤖 The guide to bot replies
 
 ## Reply struct
 
@@ -23,7 +23,7 @@ type Reply struct {
 }
 ```
 
-### Building the replies
+### 🏗️ Building the replies
 
 To easily construct the replies for the bot, use the `ReplyBuilder`.
 

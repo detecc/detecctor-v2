@@ -17,7 +17,7 @@ Example command(s):
 /language al   #switches to albanian 
 ```
 
-If the message set does not have the desired language translations in the [translations](../internal/i18n/translations)
+If the message set does not have the desired language translations in the [translations](../pkg/i18n/translations)
 folder, the message will be in English. When first registering a chat/user, the default language set is English.
 
 ## 👉 Contributing to translations

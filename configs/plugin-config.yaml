@@ -1,18 +1,14 @@
 mqttBroker:
-  host: localhost
-  port: 7777
-  username: "username"
-  password: "pass"
+  host: node2.emqx.stockup.site
+  port: 1883
+  username: "testuser"
+  password: "testpassword"
   clientId: "clientId1"
-  tls:
-
 plugins:
   dir: ../detecc-core/compiled/server
-  list:
-    - "hw-monitor"
-mongo:
-  database: "detecc"
-  host: "localhost"
-  username: "root"
-  password: "pass12345"
+database:
+  database: "detecctor"
+  host: "77.53.193.19"
+  username: "admin"
+  password: "T4UGkd%5Ez%26rzw"
   port: 27017

@@ -3,14 +3,14 @@ package database
 import (
 	"github.com/detecc/detecctor-v2/database/mongo"
 	"github.com/detecc/detecctor-v2/database/repositories"
-	"github.com/detecc/detecctor-v2/model/configuration"
+	"github.com/detecc/detecctor-v2/internal/model/configuration"
 	log "github.com/sirupsen/logrus"
 )
 
 type Database string
 
 const (
-	Mongo = Database("Database")
+	Mongo = Database("Mongo")
 )
 
 var (
@@ -32,8 +32,8 @@ func initDatabase(credentials configuration.Database) {
 }
 
 // Connect to the MongoDb instance specified in the configuration.
-func Connect(credentials configuration.Database) {
-	switch databaseType {
+func Connect(dbType Database, credentials configuration.Database) {
+	switch dbType {
 	case Mongo:
 		mongo.Connect(credentials)
 		break
@@ -41,6 +41,7 @@ func Connect(credentials configuration.Database) {
 		log.Fatalf("Database unsupported: %s", databaseType)
 	}
 
+	databaseType = dbType
 	initDatabase(credentials)
 }
 

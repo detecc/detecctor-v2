@@ -1,151 +1,102 @@
 package config
 
 import (
-	"flag"
-	"fmt"
-	cache2 "github.com/detecc/detecctor-v2/internal/cache"
-	"github.com/detecc/detecctor-v2/model/configuration"
+	configuration2 "github.com/detecc/detecctor-v2/internal/model/configuration"
+	"github.com/detecc/detecctor-v2/pkg/cache"
 	"github.com/kkyr/fig"
-	"github.com/patrickmn/go-cache"
+	goCache "github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
-	"os"
 	"path/filepath"
 )
 
 const (
-	PluginService       = Service("plugin")
-	NotificationService = Service("notification")
-	ManagementService   = Service("management")
+	PluginServiceConfiguration       = "PluginServiceConfiguration"
+	NotificationServiceConfiguration = "NotificationServiceConfiguration"
+	ManagementServiceConfiguration   = "ManagementServiceConfiguration"
+
+	dockerConfigDir = "/detecctor-v2/configuration/"
+	confDir         = "../../config"
 )
 
-type Service string
-
-// GetFlags get the program flags and store them in the cache
-func GetFlags(service Service) {
+func GetServiceConfiguration(config interface{}, cache *goCache.Cache, filePath, cacheKey string) {
 	var (
-		memory              = cache2.Memory()
-		configFileName      *string
-		defaultFileName     = ""
-		cacheKey            = ""
-		workingDirectory, _ = os.Getwd()
-		configurationPath   = fmt.Sprintf("%s", workingDirectory)
+		err error
 	)
 
-	// Get the paths from arguments
-	configurationFileFormatFlag := flag.String("config-format", "yaml", "Format of the configuration files (YAML, JSON or TOML)")
-
-	switch service {
-	case PluginService:
-		defaultFileName = "plugin-config"
-		cacheKey = "pluginServiceConfigFilePath"
-		break
-	case NotificationService:
-		defaultFileName = "notification-config"
-		cacheKey = "notificationServiceConfigFilePath"
-		break
-	case ManagementService:
-		defaultFileName = "management-config"
-		cacheKey = "managementServiceConfigFilePath"
-		break
-	default:
-		return
-	}
-
-	fileName := fmt.Sprintf("%s/configs/%s.%s", configurationPath, defaultFileName, *configurationFileFormatFlag)
-	configFileName = flag.String("config-file", fileName, "Path of the configuration file")
-	flag.Parse()
-
-	memory.Set(cacheKey, *configFileName, cache.NoExpiration)
-}
-
-func GetServiceConfiguration(config interface{}, cacheFilePathKey string) {
-	var (
-		err                   error
-		configurationFilePath string
-		memory                = cache2.Memory()
-	)
-
-	configurationPath, isFound := memory.Get(cacheFilePathKey)
-	if isFound {
-		configurationFilePath = configurationPath.(string)
-	} else {
-		log.Fatal("No configuration file path found!")
-	}
-
+	// Load the config
 	err = fig.Load(config,
-		fig.File(filepath.Base(configurationFilePath)),
-		fig.Dirs(filepath.Dir(configurationFilePath), "/detecctor-v2/configuration/", "../../configs"),
+		fig.File(filepath.Base(filePath)),
+		fig.Dirs(filepath.Dir(filePath), dockerConfigDir, confDir, "."),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("Unable to load configuration")
+	}
+
+	if cache != nil {
+		// Cache the config
+		cache.Set(cacheKey, &config, goCache.NoExpiration)
 	}
 }
 
 // GetNotificationServiceConfiguration get the configuration from the configuration file and store the configuration in the cache
-func GetNotificationServiceConfiguration() *configuration.NotificationServiceConfiguration {
+func GetNotificationServiceConfiguration(filePath string) *configuration2.NotificationServiceConfiguration {
 	var (
-		config              configuration.NotificationServiceConfiguration
-		memory              = cache2.Memory()
+		config              configuration2.NotificationServiceConfiguration
+		memory              = cache.Memory()
 		isFound             bool
 		cachedConfiguration interface{}
 	)
 
 	// Check if the configuration is cached
-	cachedConfiguration, isFound = memory.Get("notificationServiceConfiguration")
+	cachedConfiguration, isFound = memory.Get(NotificationServiceConfiguration)
 	if isFound {
-		return cachedConfiguration.(*configuration.NotificationServiceConfiguration)
+		return cachedConfiguration.(*configuration2.NotificationServiceConfiguration)
 	}
 
 	// Get configuration
-	GetServiceConfiguration(&config, "notificationServiceConfigFilePath")
-
-	memory.Set("notificationServiceConfiguration", &config, cache.NoExpiration)
+	GetServiceConfiguration(&config, memory, filePath, NotificationServiceConfiguration)
 
 	return &config
 }
 
 // GetPluginServiceConfiguration get the configuration from the configuration file and store the configuration in the cache
-func GetPluginServiceConfiguration() *configuration.PluginServiceConfiguration {
+func GetPluginServiceConfiguration(filePath string) *configuration2.PluginServiceConfiguration {
 	var (
-		config              configuration.PluginServiceConfiguration
-		memory              = cache2.Memory()
+		config              configuration2.PluginServiceConfiguration
+		memory              = cache.Memory()
 		isFound             bool
 		cachedConfiguration interface{}
 	)
 
 	// Check if the configuration is cached
-	cachedConfiguration, isFound = memory.Get("pluginServiceConfiguration")
+	cachedConfiguration, isFound = memory.Get(PluginServiceConfiguration)
 	if isFound {
-		return cachedConfiguration.(*configuration.PluginServiceConfiguration)
+		return cachedConfiguration.(*configuration2.PluginServiceConfiguration)
 	}
 
 	// Get configuration
-	GetServiceConfiguration(&config, "pluginServiceConfigFilePath")
-
-	memory.Set("pluginServiceConfiguration", &config, cache.NoExpiration)
+	GetServiceConfiguration(&config, memory, filePath, PluginServiceConfiguration)
 
 	return &config
 }
 
 // GetManagementServiceConfiguration get the configuration from the configuration file and store the configuration in the cache
-func GetManagementServiceConfiguration() *configuration.PluginServiceConfiguration {
+func GetManagementServiceConfiguration(filePath string) *configuration2.PluginServiceConfiguration {
 	var (
-		config              configuration.PluginServiceConfiguration
-		memory              = cache2.Memory()
+		config              configuration2.PluginServiceConfiguration
+		memory              = cache.Memory()
 		isFound             bool
 		cachedConfiguration interface{}
 	)
 
 	// Check if the configuration is cached
-	cachedConfiguration, isFound = memory.Get("managementServiceConfiguration")
+	cachedConfiguration, isFound = memory.Get(ManagementServiceConfiguration)
 	if isFound {
-		return cachedConfiguration.(*configuration.PluginServiceConfiguration)
+		return cachedConfiguration.(*configuration2.PluginServiceConfiguration)
 	}
 
 	// Get configuration
-	GetServiceConfiguration(&config, "managementServiceConfigFilePath")
-
-	memory.Set("managementServiceConfiguration", &config, cache.NoExpiration)
+	GetServiceConfiguration(&config, memory, filePath, ManagementServiceConfiguration)
 
 	return &config
 }

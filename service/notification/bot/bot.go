@@ -2,8 +2,8 @@ package bot
 
 import (
 	"context"
-	"github.com/detecc/detecctor-v2/model/configuration"
-	"github.com/detecc/detecctor-v2/model/reply"
+	"github.com/detecc/detecctor-v2/internal/model/configuration"
+	"github.com/detecc/detecctor-v2/internal/model/reply"
 	"github.com/detecc/detecctor-v2/service/notification"
 	t "github.com/detecc/detecctor-v2/service/notification/providers/telegram"
 	log "github.com/sirupsen/logrus"
@@ -11,14 +11,16 @@ import (
 
 const (
 	TelegramBot = "telegram"
+	DiscordBot  = "discord"
+	SlackBot    = "slack"
 )
 
 type (
 	// Bot represents a chatbot (e.g. Telegram, Discord, Slack bot).
 	Bot interface {
 		// Start should initialize the bot to listen to the chat.
-		Start()
-		// ListenToChannels is called after the start function. It monitors the chat and should send the message data to the Message channel.
+		Start(token string)
+		// ListenToChannels should be called after the start function. It monitors the chat and should send the message data to the Message channel.
 		ListenToChannels(ctx context.Context)
 		// ReplyToChat after receiving the command results or if an error occurs.
 		ReplyToChat(replyMessage reply.Reply)
@@ -30,12 +32,11 @@ type (
 // NewBot create a new telegram bot.
 func NewBot(botConfiguration configuration.BotConfiguration) Bot {
 	log.Debugf("Creating a new bot with type: %s", botConfiguration.Type)
+	channel := make(chan notification.ProxyMessage)
 
 	switch botConfiguration.Type {
 	case TelegramBot:
-		return &t.Telegram{
-			Token: botConfiguration.Token,
-		}
+		return t.NewTelegramProvider(channel)
 	default:
 		log.Fatalf("Unsupported bot type: %s", botConfiguration.Type)
 		return nil

@@ -1,8 +1,9 @@
 package plugin
 
 import (
-	"github.com/detecc/detecctor-v2/model/payload"
-	"github.com/detecc/detecctor-v2/model/reply"
+	"context"
+	"github.com/detecc/detecctor-v2/internal/model/reply"
+	"github.com/detecc/detecctor-v2/pkg/payload"
 )
 
 // constants for Metadata.Type
@@ -13,27 +14,26 @@ const (
 
 type (
 	Handler interface {
-		// Response is called when the clients have responded and should
-		// return a string to send as a reply to the bot
-		Response(payload payload.Payload) (*reply.Reply, error)
+		// Response is called when the client(s) have responded and should
+		// return a Reply object to send to the Notification service and an error if there was an error producing the reply.
+		Response(ctx context.Context, payload payload.Payload) (*reply.Reply, error)
 
-		// Execute method is called when the bot command matches GetCmdName's result.
-		// The bot passes the string arguments to the method.
-		// The execute method must return Payload array ready to be sent to the clients.
-		Execute(args ...string) ([]payload.Payload, error)
+		// Execute method is called when the command is issued by the user.
+		// The method must return a Payload array with data to be sent to the client(s) or an error if anything went wrong.
+		Execute(ctx context.Context, args ...string) ([]payload.Payload, error)
 
-		// GetMetadata returns the metadata about the plugin.
+		// GetMetadata returns the metadata about the cmd.
 		GetMetadata() Metadata
 	}
 
-	// Metadata is used to determine the role of a plugin registered in the PluginManager.
+	// Metadata is used to determine the role of a cmd registered in the PluginManager.
 	Metadata struct {
 
-		// The Type of the plugin will determine the behaviour of the server and execution of the plugin(s).
+		// The Type of the cmd will determine the behaviour of the server and execution of the cmd(s).
 		Type string
 
-		// The Middleware list is used to determine, if the plugin has any middleware to execute.
-		// Will be skipped if the plugin itself is registered as middleware.
+		// The Middleware list is used to determine if the Plugin has any Middleware to execute before calling the Execute method.
+		// Will be skipped if the cmd itself is registered as middleware.
 		Middleware []string
 	}
 )

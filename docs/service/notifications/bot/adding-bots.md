@@ -1,4 +1,4 @@
-# Adding support for Bots
+# 🤖 Adding support for Bots
 
 All chat services' bots must implement the `Bot` interface with proper functionality in order to work with the
 Detecctor.
@@ -24,7 +24,7 @@ type Bot interface {
 }
 ```
 
-## Contributing
+## ♻️Contributing
 
 To add bot support with your implementation, create a PR. Code changes should include:
 

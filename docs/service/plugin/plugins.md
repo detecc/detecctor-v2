@@ -6,7 +6,7 @@ repository. The plugin should have a `plugins.Handler` interface methods impleme
 functionality.
 
 All the plugins should be located in a `dir`, specified in
-the [configuration file](../../../configs/plugin-config.yaml).
+the [configuration file](../../../config/plugin-config.yaml).
 
 The Bot shall receive and forward a command, which will find the corresponding plugin and invoke the `Execute` method of
 the plugin. The `Execute` method returns an error and an array of `Payload`s that will be sent to the clients. After
@@ -35,18 +35,18 @@ type (
 		// The execute method must return Payload array ready to be sent to the clients.
 		Execute(args ...string) ([]payload.Payload, error)
 
-		// GetMetadata returns the metadata about the plugin.
+		// GetMetadata returns the metadata about the cmd.
 		GetMetadata() Metadata
 	}
 
-	// Metadata is used to determine the role of a plugin registered in the PluginManager.
+	// Metadata is used to determine the role of a cmd registered in the PluginManager.
 	Metadata struct {
 
-		// The Type of the plugin will determine the behaviour of the server and execution of the plugin(s).
+		// The Type of the cmd will determine the behaviour of the server and execution of the cmd(s).
 		Type string
 
-		// The Middleware list is used to determine, if the plugin has any middleware to execute.
-		// Will be skipped if the plugin itself is registered as middleware.
+		// The Middleware list is used to determine, if the cmd has any middleware to execute.
+		// Will be skipped if the cmd itself is registered as middleware.
 		Middleware []string
 	}
 )
@@ -65,9 +65,9 @@ import (
 
 func init() {
 	example := &YourHandlerImplementation{}
-	plugin.Register("/plugin-command", example)
+	plugin.Register("/cmd-command", example)
 	//or
-	plugin.GetPluginManager().AddPlugin("/plugin-command", example)
+	plugin.GetPluginManager().AddPlugin("/cmd-command", example)
 }
 ```
 

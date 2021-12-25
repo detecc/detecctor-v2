@@ -1,8 +1,9 @@
 package plugin
 
 import (
-	"github.com/detecc/detecctor-v2/model/payload"
-	"github.com/detecc/detecctor-v2/model/reply"
+	"context"
+	"github.com/detecc/detecctor-v2/internal/model/reply"
+	"github.com/detecc/detecctor-v2/pkg/payload"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -13,12 +14,12 @@ type PluginMock struct {
 	Handler
 }
 
-func (p *PluginMock) Response(payload payload.Payload) reply.Reply {
+func (p *PluginMock) Response(ctx context.Context, payload payload.Payload) reply.Reply {
 	args := p.Called(payload)
 	return args.Get(0).(reply.Reply)
 }
 
-func (p *PluginMock) Execute(args ...string) ([]payload.Payload, error) {
+func (p *PluginMock) Execute(ctx context.Context, args ...string) ([]payload.Payload, error) {
 	args2 := p.Called(args)
 	return args2.Get(0).([]payload.Payload), args2.Error(0)
 }
@@ -30,7 +31,7 @@ func (p *PluginMock) GetMetadata() Metadata {
 
 type PluginManagerTestSuite struct {
 	suite.Suite
-	pluginManager *Manager
+	pluginManager Manager
 	pluginMock    PluginMock
 }
 

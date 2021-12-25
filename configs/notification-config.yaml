@@ -1,17 +1,16 @@
 mqttBroker:
-  host: localhost
-  port: 7777
-  username: "username"
-  password: "pass"
-  clientId: "clientId1"
-  tls:
+  host: node2.emqx.stockup.site
+  port: 1883
+  username: "testuser"
+  password: "testpassword"
+  clientId: "notification"
 bot:
-  token: "exampleToken"
+  token: "1996232291:AAGpnSufjpIyniMLbG-lNpycA7Kw1lWQj-0"
   id: "1234"
   type: "telegram"
-mongo:
-  database: "test"
-  host: "localhost"
-  username: root
-  password: root
+database:
+  database: "detecctor"
+  host: "77.53.193.19"
+  username: "admin"
+  password: "T4UGkd%5Ez%26rzw"
   port: 27017

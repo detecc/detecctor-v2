@@ -34,11 +34,11 @@ mongo:
 
 ### Possible Bot Type values
 
-| Chat service | Type |
-| :----: | :----: |
-| Telegram | `"telegram"` |
-| Slack | `"slack"` |
-| Discord | `"discord"` |
+| Chat service |     Type     |
+|:------------:|:------------:|
+|   Telegram   | `"telegram"` |
+|    Slack     |  `"slack"`   |
+|   Discord    | `"discord"`  |
 
 ## Flags
 

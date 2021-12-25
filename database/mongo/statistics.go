@@ -3,7 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
-	. "github.com/detecc/detecctor-v2/model/client"
+	. "github.com/detecc/detecctor-v2/internal/model/client"
 	"github.com/kamva/mgm/v3"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"

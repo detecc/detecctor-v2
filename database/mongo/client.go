@@ -3,7 +3,8 @@ package mongo
 import (
 	"context"
 	"fmt"
-	. "github.com/detecc/detecctor-v2/model/client"
+	. "github.com/detecc/detecctor-v2/internal/model/client"
+	"github.com/detecc/detecctor-v2/internal/model/timestamp"
 	"github.com/kamva/mgm/v3"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,7 +31,7 @@ func (c *ClientRepository) GetClients(ctx context.Context) ([]Client, error) {
 		serviceNode = &Client{}
 		results     []Client
 	)
-	// find all clients
+	// Find all clients
 	cursor, err := mgm.Coll(serviceNode).Find(mgm.Ctx(), bson.M{})
 	if err = cursor.All(mgm.Ctx(), &results); err != nil {
 		return nil, err
@@ -80,7 +81,7 @@ func (c *ClientRepository) AuthorizeClient(ctx context.Context, clientId, servic
 	})
 }
 
-func (c *ClientRepository) UpdateClientStatus(ctx context.Context, clientId, status string) error {
+func (c *ClientRepository) UpdateClientStatus(ctx context.Context, clientId string, status Status) error {
 	return mgm.Transaction(func(session mongo.Session, sc mongo.SessionContext) error {
 		err := updateClientStatusWithCtx(sc, clientId, status)
 		if err != nil {
@@ -89,6 +90,39 @@ func (c *ClientRepository) UpdateClientStatus(ctx context.Context, clientId, sta
 
 		return session.CommitTransaction(sc)
 	})
+}
+
+func (c *ClientRepository) UpdateLastOnline(ctx context.Context, clientId string) error {
+	return mgm.Transaction(func(session mongo.Session, sc mongo.SessionContext) error {
+		client, err := getClientWithCtx(sc, clientId)
+		if err != nil {
+			return err
+		}
+
+		client.LastOnline = timestamp.Now()
+
+		err = updateClientStatusWithCtx(sc, clientId, "online")
+		if err != nil {
+			log.Warnf("Cannot update client status: %v", err)
+		}
+
+		err = updateClientWithCtx(sc, client)
+		if err != nil {
+			return err
+		}
+
+		return session.CommitTransaction(sc)
+	})
+}
+
+func (c *ClientRepository) IsOnline(ctx context.Context, clientId string) bool {
+	client, err := getClient(bson.M{"id": clientId})
+	if err != nil {
+		return false
+	}
+
+	// If the client sent heartbeats in the last 2 minutes, it was online
+	return timestamp.Now().Sub(client.LastOnline.Time).Minutes() < 2
 }
 
 func (c *ClientRepository) CreateClientIfNotExists(ctx context.Context, clientId, IP, SNKey string) (*Client, error) {
@@ -165,7 +199,7 @@ func getClientWithCtx(ctx context.Context, filter interface{}) (*Client, error) 
 	return client, nil
 }
 
-func updateClientStatusWithCtx(ctx context.Context, clientId, status string) error {
+func updateClientStatusWithCtx(ctx context.Context, clientId string, status Status) error {
 	log.WithFields(log.Fields{
 		"clientId": clientId,
 		"status":   status,

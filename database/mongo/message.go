@@ -3,7 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
-	. "github.com/detecc/detecctor-v2/model/chat"
+	. "github.com/detecc/detecctor-v2/internal/model/chat"
 	"github.com/kamva/mgm/v3"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -69,6 +69,7 @@ func (m *MessageRepository) NewMessage(ctx context.Context, chatId string, messa
 
 		return session.CommitTransaction(sc)
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func addMessageWithCtx(ctx context.Context, message *Message) error {
 		return fmt.Errorf("message cannot be nil pointer")
 	}
 
-	_, err := getMessageWithCtx(ctx, bson.M{"chatId": message.ChatId})
+	_, err := getMessageWithCtx(ctx, bson.M{"messageId": message.MessageId})
 	switch err {
 	case nil:
 		return fmt.Errorf("duplicate message found")

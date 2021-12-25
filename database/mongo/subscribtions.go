@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	. "github.com/detecc/detecctor-v2/model/chat"
+	. "github.com/detecc/detecctor-v2/internal/model/chat"
 	"github.com/kamva/mgm/v3"
 	"github.com/kamva/mgm/v3/operator"
 	log "github.com/sirupsen/logrus"

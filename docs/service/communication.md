@@ -1,4 +1,4 @@
-# Communication and architecture
+# 💻 Communication and architecture
 
 Detecctor-v2 is using the microservice architecture. The solution consists of two main services: a notification and
 plugin service. The services communicate to each other using MQTT protocol and EMQ X broker. The client-server
@@ -6,7 +6,7 @@ communication with Detecc (the client) also occurs on the MQTT protocol.
 
 ## Server-client communication
 
-### Payload struct
+### 📃 Payload struct
 
 The messages sent to and from the server are in **JSON** format, encoded with **base64** encoding. The JSON object sent
 to and from the client is the `Payload` struct.
@@ -50,7 +50,7 @@ func CreateNewPayload() {
 }
 ```
 
-## Service-to-service communication
+## ⚙️Service-to-service communication
 
 Check out the following:
 

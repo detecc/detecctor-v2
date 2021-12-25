@@ -21,10 +21,11 @@ func GetMiddlewareManager() *Manager {
 	if middlewareManager == nil {
 		middlewareManager = &Manager{middlewareMap: sync.Map{}}
 	}
+
 	return middlewareManager
 }
 
-// Register the middleware plugin in the manager.
+// Register the middleware cmd in the manager.
 func (m *Manager) Register(name string, action Handler) {
 	log.Println("Adding middleware", name, action)
 	m.middlewareMap.Store(name, action)
@@ -33,10 +34,7 @@ func (m *Manager) Register(name string, action Handler) {
 // HasMiddleware Check if the manager has the middleware stored.
 func (m *Manager) HasMiddleware(name string) bool {
 	_, isFound := m.middlewareMap.Load(name)
-	if !isFound {
-		return false
-	}
-	return true
+	return isFound
 }
 
 // GetMiddleware gets a middleware stored in the map.
@@ -45,6 +43,7 @@ func (m *Manager) GetMiddleware(name string) (Handler, error) {
 	if !isFound {
 		return nil, fmt.Errorf("middleware %s not found", name)
 	}
+
 	return middleware.(Handler), nil
 }
 
@@ -55,35 +54,43 @@ func (m *Manager) GetAllMiddleware() []Handler {
 		middlewares = append(middlewares, value.(Handler))
 		return true
 	})
+
 	return middlewares
 }
 
 // Chain the middleware in consecutive order. This is useful for processing requests depending on the business constraints.
 // Returns an error if it occurred during execution.
 func (m *Manager) Chain(ctx context.Context, middleware ...string) error {
+	newCtx, cancel := context.WithCancel(ctx)
+
 	var finalMiddleware Handler
 	if len(middleware) == 0 {
+		cancel()
 		return nil
 	}
 
 	for i, key := range middleware {
 		if !m.HasMiddleware(key) {
+			cancel()
 			return fmt.Errorf("middleware %s not found", key)
 		}
 
 		m, _ := m.middlewareMap.Load(key)
 		if i == 0 {
-			// assign the first instance
+			// First instance
 			finalMiddleware = m.(Handler)
 		} else {
-			// try to chain the middleware, stop execution if an error occurs
-			mw, err := finalMiddleware.Chain(ctx, m.(Handler))
+			// Try to chain the middleware, stop execution if an error occurs
+			mw, err := finalMiddleware.Chain(newCtx, m.(Handler))
 			if err != nil {
+				cancel()
 				return err
 			}
+
 			finalMiddleware = mw
 		}
 	}
 
+	cancel()
 	return finalMiddleware.Execute(ctx)
 }

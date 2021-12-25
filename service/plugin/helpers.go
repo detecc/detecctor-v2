@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-//executeMiddleware execute middleware registered to the plugin
+//executeMiddleware execute middleware registered to the cmd
 func executeMiddleware(ctx context.Context, metadata plugin.Metadata) error {
-	log.WithField("metadata", metadata).Error("Executing middleware based on the metadata")
+	log.WithField("metadata", metadata).Debug("Executing middleware based on the metadata")
 
 	middlewareErr := middleware.GetMiddlewareManager().Chain(ctx, metadata.Middleware...)
 

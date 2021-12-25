@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"fmt"
-	"github.com/detecc/detecctor-v2/model/configuration"
+	"github.com/detecc/detecctor-v2/internal/model/configuration"
 	"github.com/kamva/mgm/v3"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -10,7 +10,7 @@ import (
 
 // Connect to the MongoDb instance specified in the configuration.
 func Connect(credentials configuration.Database) {
-	mongoDbConnection := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s",
+	mongoDbConnection := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s?authSource=admin",
 		credentials.Username,
 		credentials.Password,
 		credentials.Host,

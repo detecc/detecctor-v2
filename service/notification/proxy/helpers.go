@@ -1,12 +1,15 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
-	"github.com/detecc/detecctor-v2/database"
-	"github.com/detecc/detecctor-v2/internal/i18n"
-	"github.com/detecc/detecctor-v2/model/command"
+	"github.com/detecc/detecctor-v2/database/repositories"
+	commandBuilder "github.com/detecc/detecctor-v2/internal/command"
+	"github.com/detecc/detecctor-v2/internal/model/command"
+	i18n2 "github.com/detecc/detecctor-v2/pkg/i18n"
 	log "github.com/sirupsen/logrus"
 	"strings"
+	"time"
 )
 
 // parseCommand parses the text as a command, where the command is structured as /command arg1 arg2 arg3.
@@ -23,7 +26,7 @@ func parseCommand(text, chatId, messageId string) (command.Command, error) {
 	}
 
 	args := strings.Split(text, " ")
-	cmdBuilder := command.NewCommandBuilder()
+	cmdBuilder := commandBuilder.NewCommandBuilder()
 
 	if len(args) == 1 {
 		cmdBuilder.WithName(args[0]).FromChat(chatId).Id(messageId)
@@ -36,27 +39,35 @@ func parseCommand(text, chatId, messageId string) (command.Command, error) {
 
 // TranslateReplyMessage remaps the content and translates the message using i18n.
 // The translation is dependent on the chat language.
-func TranslateReplyMessage(chatId string, content interface{}) (string, error) {
-	translationMap := content.(i18n.TranslationMap)
-	messageId := translationMap.MessageId
-	data := translationMap.Data
-	plural := translationMap.Plural
+func TranslateReplyMessage(chatRepository repositories.ChatRepository, chatId string, content interface{}) (string, error) {
+	var (
+		translationMap = content.(i18n2.TranslationMap)
+		messageId      = translationMap.MessageId
+		data           = translationMap.Data
+		plural         = translationMap.Plural
+		logInfo        = log.WithFields(log.Fields{
+			"chatId":    chatId,
+			"messageId": messageId,
+		})
+	)
 
-	log.WithFields(log.Fields{
-		"chatId":    chatId,
-		"messageId": messageId,
-	}).Debug("Translating a reply message")
+	logInfo.Debug("Translating a reply message")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 
 	// Get the preferred language for the chat
-	lang, err2 := database.GetChatRepository().GetLanguage(chatId)
+	lang, err2 := chatRepository.GetLanguage(ctx, chatId)
 	if err2 != nil {
+		cancel()
 		return "", err2
 	}
 
+	cancel()
+
 	// Check if a translation for the language is available
-	localize, err := i18n.Localize(lang, messageId, data, plural)
+	localize, err := i18n2.Localize(lang, messageId, data, plural)
 	if err != nil {
-		log.Println("Error localizing the translationMap", err)
+		logInfo.WithError(err).Warnf("Error localizing the translationMap")
 		return "", err
 	}
 

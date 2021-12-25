@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
-	"github.com/detecc/detecctor-v2/internal/i18n"
-	. "github.com/detecc/detecctor-v2/model/chat"
+	. "github.com/detecc/detecctor-v2/internal/model/chat"
+	"github.com/detecc/detecctor-v2/pkg/i18n"
 	"github.com/kamva/mgm/v3"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,7 +53,7 @@ func (c *ChatRepository) IsChatAuthorized(ctx context.Context, chatId string) bo
 
 	chat, err := getChat(bson.M{"chatId": chatId})
 	if err != nil {
-		log.Debug("Error authenticating the chat:", err)
+		log.Debugf("Error authenticating the chat: %v", err)
 		return false
 	}
 
@@ -98,7 +98,7 @@ func (c *ChatRepository) AddChatIfDoesntExist(ctx context.Context, chatId string
 	})
 }
 
-func (c *ChatRepository) GetLanguage(chatId string) (string, error) {
+func (c *ChatRepository) GetLanguage(ctx context.Context, chatId string) (string, error) {
 	log.WithField("chatId", chatId).Debug("Getting a language for chat")
 
 	chat, err := getChat(bson.M{"chatId": chatId})
@@ -109,7 +109,7 @@ func (c *ChatRepository) GetLanguage(chatId string) (string, error) {
 	return chat.Language, nil
 }
 
-func (c *ChatRepository) SetLanguage(chatId string, lang string) error {
+func (c *ChatRepository) SetLanguage(ctx context.Context, chatId string, lang string) error {
 	log.WithFields(log.Fields{
 		"chatId":   chatId,
 		"language": lang,

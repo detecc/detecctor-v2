@@ -2,26 +2,26 @@ version: "3.7"
 services:
   plugin-service:
     build:
-      dockerfile: build/PluginService.Dockerfile
+      dockerfile: build/plugin/PluginService.Dockerfile
       context: .
       target: dev
     volumes:
       - ./plugins:/detecctor/plugins
-      - ./configuration/plugin-config.yaml:/detecctor-v2/configuration/plugin-config.yaml
+      - ./config/plugin-service.yaml:/detecctor-v2/config/plugin-service.yaml
   notification-service:
     build:
-      dockerfile: build/NotificationService.Dockerfile
+      dockerfile: build/notification/NotificationService.Dockerfile
       context: .
       target: dev
     volumes:
-      - ./configuration/notification-config.yaml:/detecctor-v2/configuration/notification-config.yaml
+      - ./config/notification-service.yaml:/detecctor-v2/config/notification-service.yaml
   management-service:
     build:
-      dockerfile: build/ManagementService.Dockerfile
+      dockerfile: build/management/ManagementService.Dockerfile
       context: .
       target: dev
     volumes:
-      - ./configuration/management-config.yaml:/detecctor-v2/configuration/management-config.yaml
+      - ./config/management-service.yaml:/detecctor-v2/config/management-service.yaml
   emqx1:
     image: emqx/emqx:latest
     environment:

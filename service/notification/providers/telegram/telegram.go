@@ -4,31 +4,37 @@ import (
 	"context"
 	"fmt"
 	"github.com/detecc/detecctor-v2/database"
-	"github.com/detecc/detecctor-v2/model/reply"
+	"github.com/detecc/detecctor-v2/internal/model/reply"
 	"github.com/detecc/detecctor-v2/service/notification"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"time"
 )
 
 // Telegram is a wrapper for the Telegram bot API.
 type Telegram struct {
-	Token          string
 	botAPI         *telegram.BotAPI
 	messageChannel chan notification.ProxyMessage
 	messageBuilder *notification.MessageBuilder
 }
 
-// Start listening to the bot updates and the updates from the notification service
-func (t *Telegram) Start() {
-	telegramBot, err := telegram.NewBotAPI(t.Token)
+func NewTelegramProvider(messageChannel chan notification.ProxyMessage) *Telegram {
+	telegramProvider := new(Telegram)
+	telegramProvider.messageChannel = messageChannel
+	telegramProvider.messageBuilder = notification.NewMessageBuilder()
+
+	return telegramProvider
+}
+
+// Start listening to the bot updates and the updates from the cmd service
+func (t *Telegram) Start(token string) {
+	telegramBot, err := telegram.NewBotAPI(token)
 	if err != nil {
-		log.Panic(err)
+		log.WithError(err).Panic("Cannot start the telegram bot")
 	}
 
 	t.botAPI = telegramBot
-	t.messageChannel = make(chan notification.ProxyMessage)
-	t.messageBuilder = notification.NewMessageBuilder()
 }
 
 //GetMessageChannel returns the channel for outgoing messages
@@ -39,32 +45,38 @@ func (t *Telegram) GetMessageChannel() <-chan notification.ProxyMessage {
 // ListenToChannels listens for incoming data from telegram bot messages
 func (t *Telegram) ListenToChannels(ctx context.Context) {
 	log.Infof("Authorized on account %s", t.botAPI.Self.UserName)
-	message, err := database.GetStatistics().GetStatistics(nil)
+	var (
+		databaseCtx, cancel = context.WithTimeout(ctx, time.Second*10)
+		message, err        = database.GetStatistics().GetStatistics(databaseCtx)
+		lastMessageId       = 0
+	)
 
-	lastMessageId := 0
 	if err == nil {
 		messageId, err := strconv.Atoi(message.LastMessageId)
 		if err == nil {
 			lastMessageId = messageId
 		} else {
-			log.Errorf("Error converting message id to int:%v", err)
+			log.WithError(err).Errorf("Error converting message id to int")
 		}
 	}
+
+	cancel()
 
 	u := telegram.NewUpdate(lastMessageId)
 	u.Timeout = 60
 
 	updates, err := t.botAPI.GetUpdatesChan(u)
 	if err != nil {
-		log.Errorf("Error receiving update channel from Telegram: %v", err)
+		log.WithError(err).Errorf("Error receiving update channel from Telegram")
 		return
 	}
 
+Listener:
 	for {
 		select {
 		case update := <-updates:
 			if update.Message == nil || update.Message.Entities == nil || len(*update.Message.Entities) == 0 {
-				return
+				continue
 			}
 
 			for _, entity := range *update.Message.Entities {
@@ -79,18 +91,24 @@ func (t *Telegram) ListenToChannels(ctx context.Context) {
 			break
 		case <-ctx.Done():
 			log.Info("Stopping the Telegram bot..")
-			return
+			break Listener
 		}
 	}
 }
 
 //ReplyToChat replies to a telegram chat
 func (t *Telegram) ReplyToChat(replyMessage reply.Reply) {
-	var msg telegram.Chattable
+	var (
+		msg     telegram.Chattable
+		logInfo = log.WithFields(log.Fields{
+			"chatId":    replyMessage.ChatId,
+			"replyType": replyMessage.ReplyType,
+		})
+	)
 
 	chatId, err := strconv.Atoi(replyMessage.ChatId)
 	if err != nil {
-		log.Errorf("Error converting ChatId to int:%v", err)
+		logInfo.WithError(err).Errorf("Error converting ChatId to int")
 		return
 	}
 
@@ -108,14 +126,9 @@ func (t *Telegram) ReplyToChat(replyMessage reply.Reply) {
 	}
 
 	if msg != nil {
-		log.WithFields(log.Fields{
-			"chatId":    replyMessage.ChatId,
-			"replyType": replyMessage.ReplyType,
-		}).Debug("Replying to chat")
-
-		_, err := t.botAPI.Send(msg)
-		if err != nil {
-			log.Errorf("Error sending the message to chat: %v", err)
+		_, sendErr := t.botAPI.Send(msg)
+		if sendErr != nil {
+			logInfo.WithError(sendErr).Errorf("Error sending the message to chat")
 		}
 	}
 }

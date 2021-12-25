@@ -1,4 +1,4 @@
-# The guide to commands
+# 📜 The guide to commands
 
 ## Command struct
 
@@ -19,7 +19,7 @@ type Command struct {
 }
 ```
 
-## Building the commands with CommandBuilder
+## 🏗️ Building the commands with CommandBuilder
 
 To easily construct the commands from the bot, use the `CommandBuilder`.
 

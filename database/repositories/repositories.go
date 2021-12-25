@@ -2,10 +2,10 @@ package repositories
 
 import (
 	"context"
-	. "github.com/detecc/detecctor-v2/model/chat"
-	"github.com/detecc/detecctor-v2/model/client"
-	. "github.com/detecc/detecctor-v2/model/command"
-	. "github.com/detecc/detecctor-v2/model/command/logs"
+	. "github.com/detecc/detecctor-v2/internal/command/logs"
+	. "github.com/detecc/detecctor-v2/internal/model/chat"
+	"github.com/detecc/detecctor-v2/internal/model/client"
+	. "github.com/detecc/detecctor-v2/internal/model/command"
 )
 
 type (
@@ -16,17 +16,19 @@ type (
 		IsChatAuthorized(ctx context.Context, chatId string) bool
 		RevokeChatAuthorization(ctx context.Context, chatId string) error
 		AddChatIfDoesntExist(ctx context.Context, chatId string, name string) error
-		GetLanguage(chatId string) (string, error)
-		SetLanguage(chatId string, lang string) error
+		GetLanguage(ctx context.Context, chatId string) (string, error)
+		SetLanguage(ctx context.Context, chatId string, lang string) error
 	}
 
 	ClientRepository interface {
 		GetClient(ctx context.Context, clientId string) (*client.Client, error)
 		GetClientWithServiceNodeKey(ctx context.Context, serviceNodeKey string) (*client.Client, error)
 		GetClients(ctx context.Context) ([]client.Client, error)
+		IsOnline(ctx context.Context, clientId string) bool
 		IsClientAuthorized(ctx context.Context, clientId string) bool
 		AuthorizeClient(ctx context.Context, clientId, serviceNodeKey string) error
-		UpdateClientStatus(ctx context.Context, clientId, status string) error
+		UpdateClientStatus(ctx context.Context, clientId string, status client.Status) error
+		UpdateLastOnline(ctx context.Context, clientId string) error
 		CreateClientIfNotExists(ctx context.Context, clientId, IP, SNKey string) (*client.Client, error)
 	}
 

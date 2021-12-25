@@ -3,13 +3,13 @@ package auth
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/detecc/detecctor-v2/internal/cache"
+	goCache "github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
 // GenerateChatAuthenticationToken Generate an authorization token for a chat and log it. The token is cached and expires after 5 minutes.
-func GenerateChatAuthenticationToken(chatId string) {
+func GenerateChatAuthenticationToken(cache *goCache.Cache, chatId string) {
 	log.WithField("chatId", chatId).Debug("Generating a new authentication token")
 
 	token := GenerateToken()
@@ -17,15 +17,15 @@ func GenerateChatAuthenticationToken(chatId string) {
 		return
 	}
 
-	cache.Memory().Set(fmt.Sprintf("auth-token-%s", chatId), token, time.Minute*5)
-	log.Info(token)
+	cache.Set(fmt.Sprintf("auth-token-%s", chatId), token, time.Minute*5)
+	log.Infof("Generated chat authentication token: %s", token)
 }
 
 func GenerateToken() string {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
-		log.Errorf("Error generating a new token: %v", err)
+		log.WithError(err).Errorf("Error generating a new token")
 		return ""
 	}
 
